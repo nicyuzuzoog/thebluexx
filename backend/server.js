@@ -7,31 +7,42 @@ const path = require('path');
 const connectDB = require('./config/db');
 
 dotenv.config();
-
-// Connect to database
 connectDB();
 
 const app = express();
 
-// Security middleware
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
-app.use(morgan('dev'));
 
-// CORS
+if (process.env.NODE_ENV === 'development') {
+  app.use(morgan('dev'));
+}
+
+// CORS - Allow both local and production
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  process.env.FRONTEND_URL,
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(null, true); // Allow all for now
+    }
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Body parser
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
-
-// Static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
@@ -45,28 +56,27 @@ app.use('/api/jobs', require('./routes/jobRoutes'));
 app.use('/api/stories', require('./routes/storyRoutes'));
 app.use('/api/subscribers', require('./routes/subscriberRoutes'));
 
-// Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'THE BLUEX API is running' });
+  res.json({
+    status: 'OK',
+    message: 'THE BLUEX API is running',
+    timestamp: new Date().toISOString()
+  });
 });
 
-// Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(err.statusCode || 500).json({
     success: false,
-    message: err.message || 'Internal Server Error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    message: err.message || 'Internal Server Error'
   });
 });
 
-// 404 handler
 app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' });
 });
 
 const PORT = process.env.PORT || 5000;
-
 app.listen(PORT, () => {
   console.log(`THE BLUEX Server running on port ${PORT}`);
 });
