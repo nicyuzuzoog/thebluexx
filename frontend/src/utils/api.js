@@ -1,15 +1,17 @@
 import axios from 'axios';
 
+// Use environment variable - works for both dev and production
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  timeout: 15000
 });
 
-// Request interceptor to add token
+// Request interceptor
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('bluex_token');
@@ -18,19 +20,19 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor for error handling
+// Response interceptor
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('bluex_token');
-      if (window.location.pathname.startsWith('/admin') ||
-          window.location.pathname.startsWith('/dashboard')) {
+      if (
+        window.location.pathname.startsWith('/admin') ||
+        window.location.pathname === '/profile'
+      ) {
         window.location.href = '/login';
       }
     }
