@@ -55,9 +55,9 @@ const Footer = () => {
               </Link>
               <p className="footer-about">{t('footer.aboutText')}</p>
               <div className="social-circles" style={{ marginTop: '14px' }}>
-                <a href="https://wa.me/?text=THE%20BLUEX" target="_blank" rel="noopener noreferrer"
+                <a href="https://wa.me/+250780457288?text=THE%20BLUEX" target="_blank" rel="noopener noreferrer"
                   className="social-circle social-whatsapp"><FaWhatsapp /></a>
-                <a href="https://instagram.com" target="_blank" rel="noopener noreferrer"
+                <a href="https://www.instagram.com/ni_cyuzuzo_" target="_blank" rel="noopener noreferrer"
                   className="social-circle social-instagram"><FaInstagram /></a>
                 <a href="https://twitter.com" target="_blank" rel="noopener noreferrer"
                   className="social-circle social-x"><FaXTwitter /></a>
@@ -114,9 +114,8 @@ const Footer = () => {
           <div className="footer-developer">
             <FaCode className="dev-icon" />
             <span>{t('footer.developer')}{' '}
-              <a href="mailto:thebluex08@gmail.com" className="dev-link">BLUEX Dev Team</a>
+              <a href="mailto:nicjbdede@gmail.com" className="dev-link">Dev ©</a>
             </span>
-            <FaHeart className="dev-heart" />
           </div>
         </div>
       </div>
