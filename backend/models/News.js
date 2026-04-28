@@ -105,7 +105,25 @@ newsSchema.pre('save', function(next) {
 });
 
 // Index for search
-newsSchema.index({ 'title.en': 'text', 'title.fr': 'text', 'title.rw': 'text', 'content.en': 'text', tags: 'text' });
+newsSchema.index({
+  'title.en': 'text',
+  'title.fr': 'text',
+  'title.rw': 'text',
+  'content.en': 'text',
+  'summary.en': 'text'
+});
+
+// Regular indexes
+newsSchema.index({ tags: 1 });
+newsSchema.index({ category: 1 });
+newsSchema.index({ status: 1 });
+newsSchema.index({ views: -1 });
+newsSchema.index({ likesCount: -1 });
+newsSchema.index({ isFeatured: 1 });
+newsSchema.index({ isBreaking: 1 });
+newsSchema.index({ createdAt: -1 });
+newsSchema.index({ category: 1, status: 1 });
+newsSchema.index({ status: 1, createdAt: -1 });
 newsSchema.index({ category: 1, status: 1 });
 newsSchema.index({ views: -1 });
 newsSchema.index({ createdAt: -1 });

@@ -10,8 +10,14 @@ exports.getMovies = async (req, res) => {
 
     let query = { status: 'published' };
 
-    if (genre) query.genre = genre;
+    // Genre filter — uses regular index (genre is array, use $in)
+    if (genre) {
+      query.genre = { $in: [genre] };
+    }
+
     if (featured === 'true') query.isFeatured = true;
+
+    // Text search — uses text index (only string fields)
     if (search) {
       query.$text = { $search: search };
     }
@@ -26,7 +32,8 @@ exports.getMovies = async (req, res) => {
       .populate('addedBy', 'name avatar')
       .sort(sortOption)
       .skip(skip)
-      .limit(limitNum);
+      .limit(limitNum)
+      .lean();
 
     res.json({
       success: true,
@@ -39,6 +46,7 @@ exports.getMovies = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('getMovies error:', error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 };

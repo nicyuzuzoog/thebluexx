@@ -34,7 +34,7 @@ const movieSchema = new mongoose.Schema({
   },
   poster: {
     type: String,
-    required: [true, 'Please add a poster image']
+    default: ''
   },
   backdrop: {
     type: String,
@@ -42,7 +42,13 @@ const movieSchema = new mongoose.Schema({
   },
   genre: [{
     type: String,
-    enum: ['action', 'comedy', 'drama', 'horror', 'romance', 'thriller', 'sci-fi', 'documentary', 'animation', 'adventure', 'crime', 'fantasy', 'musical', 'mystery', 'war', 'western', 'biography', 'family', 'history', 'sport', 'rwandan', 'african', 'other']
+    enum: [
+      'action', 'comedy', 'drama', 'horror', 'romance',
+      'thriller', 'sci-fi', 'documentary', 'animation',
+      'adventure', 'crime', 'fantasy', 'musical', 'mystery',
+      'war', 'western', 'biography', 'family', 'history',
+      'sport', 'rwandan', 'african', 'other'
+    ]
   }],
   duration: {
     type: String,
@@ -117,6 +123,7 @@ const movieSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
+// Virtual for comments
 movieSchema.virtual('comments', {
   ref: 'Comment',
   localField: '_id',
@@ -124,15 +131,35 @@ movieSchema.virtual('comments', {
   justOne: false
 });
 
-movieSchema.pre('save', function(next) {
-  if (this.isModified('title')) {
-    this.slug = slugify(this.title.en, { lower: true, strict: true }) + '-' + Date.now();
+// Create slug from title
+movieSchema.pre('save', function (next) {
+  if (this.isModified('title') && this.title.en) {
+    this.slug = slugify(this.title.en, {
+      lower: true,
+      strict: true
+    }) + '-' + Date.now();
   }
   next();
 });
 
-movieSchema.index({ 'title.en': 'text', 'title.fr': 'text', 'title.rw': 'text', genre: 1 });
+// ─── INDEXES (Fixed — no array field in text index) ───
+
+// Text search index — only string fields, NOT genre (array)
+movieSchema.index({
+  'title.en': 'text',
+  'title.fr': 'text',
+  'title.rw': 'text',
+  'description.en': 'text',
+  director: 'text'
+});
+
+// Regular indexes for filtering & sorting
+movieSchema.index({ genre: 1 });
+movieSchema.index({ status: 1 });
 movieSchema.index({ views: -1 });
 movieSchema.index({ likesCount: -1 });
+movieSchema.index({ isFeatured: 1 });
+movieSchema.index({ createdAt: -1 });
+movieSchema.index({ status: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Movie', movieSchema);
