@@ -109,14 +109,15 @@ exports.createMovie = async (req, res) => {
       movieData.cast = req.body.cast.split(',').map(c => c.trim());
     }
 
-    // Extract YouTube thumbnail as poster if no poster uploaded
+    
     if (req.body.trailerUrl && !req.file) {
-      const ytId = extractYouTubeId(req.body.trailerUrl);
-      if (ytId) {
-        movieData.poster = `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg`;
-        movieData.backdrop = `https://img.youtube.com/vi/${ytId}/maxresdefault.jpg`;
-      }
-    }
+  const ytId = extractYouTubeId(req.body.trailerUrl);
+  if (ytId) {
+    // Use hqdefault instead of maxresdefault (always available)
+    movieData.poster = `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
+    movieData.backdrop = `https://img.youtube.com/vi/${ytId}/sddefault.jpg`;
+  }
+}
 
     if (req.file) {
       movieData.poster = `/uploads/movies/${req.file.filename}`;

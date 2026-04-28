@@ -46,9 +46,13 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB
 });
 
-// Extract YouTube video ID
 const extractYouTubeId = (url) => {
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  if (!url) return null;
+
+  // Handle youtu.be/ID?si=xxx format
+  // Handle youtube.com/watch?v=ID format
+  // Handle youtube.com/embed/ID format
+  const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
   const match = url.match(regExp);
   return (match && match[2].length === 11) ? match[2] : null;
 };

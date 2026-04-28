@@ -247,23 +247,29 @@ const MovieDetail = () => {
 
         {/* Player */}
         {playing && ytId && (
-          <div className="md-player-wrap">
-            <div className="container" style={{ maxWidth: '980px' }}>
-              <div className="md-player animate-scaleIn">
-                <ReactPlayer
-                  url={`https://www.youtube.com/watch?v=${ytId}`}
-                  width="100%"
-                  height="100%"
-                  controls
-                  playing
-                  config={{
-                    youtube: { playerVars: { autoplay: 1, modestbranding: 1 } }
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        )}
+  <div className="md-player-wrap">
+    <div className="container" style={{ maxWidth: '980px' }}>
+      <div className="md-player animate-scaleIn">
+        <ReactPlayer
+          url={`https://www.youtube.com/watch?v=${ytId}`}
+          width="100%"
+          height="100%"
+          controls
+          playing
+          config={{
+            youtube: {
+              playerVars: {
+                autoplay: 1,
+                modestbranding: 1,
+                rel: 0
+              }
+            }
+          }}
+        />
+      </div>
+    </div>
+  </div>
+)}
 
         {/* Description + Related + Comments */}
         <div className="container" style={{ maxWidth: '980px', padding: '36px 20px 60px' }}>
