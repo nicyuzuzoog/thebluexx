@@ -17,12 +17,21 @@ const Home = () => {
 
       <HeroSection />
       <BreakingNewsTicker />
+
+      {/* Slim top banner - subtle bar */}
       <AdBanner position="top-banner" />
+
       <NewsSection />
       <CategoriesSection />
-      <MovieSection />
+
+      {/* Native in-feed ad - blends with content */}
       <AdBanner position="in-feed" />
+
+      <MovieSection />
       <SubscribeSection />
+
+      {/* Floating corner notification ad */}
+      <AdBanner position="floating" />
     </>
   );
 };
