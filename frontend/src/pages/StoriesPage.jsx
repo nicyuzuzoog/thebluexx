@@ -3,7 +3,10 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
 import { IoEye, IoHeart, IoTime } from 'react-icons/io5';
-import { getLocalizedText, formatNumber, timeAgo, truncateText } from '../utils/helpers';
+import {
+  getLocalizedText, formatNumber, timeAgo,
+  truncateText, getImageUrl
+} from '../utils/helpers';
 import api from '../utils/api';
 
 const StoriesPage = () => {
@@ -49,9 +52,11 @@ const StoriesPage = () => {
           display: 'flex', flexWrap: 'wrap', gap: '6px'
         }}>
           {categories.map((cat) => (
-            <button key={cat}
+            <button
+              key={cat}
               className={`filter-pill ${filter === cat ? 'active' : ''}`}
-              onClick={() => setFilter(cat)}>
+              onClick={() => setFilter(cat)}
+            >
               {cat || t('news.all')}
             </button>
           ))}
@@ -78,14 +83,19 @@ const StoriesPage = () => {
         ) : (
           <div className="news-grid">
             {stories.map((story, index) => (
-              <Link to={`/stories/${story._id}`} key={story._id}
+              <Link
+                to={`/stories/${story._id}`}
+                key={story._id}
                 className="card animate-fadeInUp"
-                style={{ animationDelay: `${index * 0.05}s` }}>
+                style={{ animationDelay: `${index * 0.05}s` }}
+              >
                 {story.image && (
                   <div className="card-image">
-                    <img src={story.image}
+                    <img
+                      src={getImageUrl(story.image)}
                       alt={getLocalizedText(story.title, i18n.language)}
-                      loading="lazy" />
+                      loading="lazy"
+                    />
                     <span className="card-badge card-badge-green">{story.category}</span>
                     <div className="card-image-overlay">
                       <span style={{ color: 'var(--white)', fontWeight: 500 }}>
@@ -124,57 +134,19 @@ const StoriesPage = () => {
       </div>
 
       <style>{`
-        .sp-hero {
-          position: relative;
-          background: var(--grad-dark);
-          padding: 56px 0 46px;
-          overflow: hidden;
-          margin-top: calc(var(--navbar-height) * -1);
-          padding-top: calc(var(--navbar-height) + 36px);
-        }
+        .sp-hero { position: relative; background: var(--grad-dark); padding: 56px 0 46px; overflow: hidden; margin-top: calc(var(--navbar-height) * -1); padding-top: calc(var(--navbar-height) + 36px); }
         .sp-hero-bg { position: absolute; inset: 0; }
-        .sp-orb {
-          position: absolute; border-radius: 50%;
-          filter: blur(80px); opacity: 0.18;
-        }
-        .sp-orb-1 {
-          width: 280px; height: 280px; background: var(--violet);
-          top: -90px; right: 8%;
-          animation: float 7s ease-in-out infinite;
-        }
-        .sp-orb-2 {
-          width: 200px; height: 200px; background: var(--jade);
-          bottom: -50px; left: 18%;
-          animation: float 9s ease-in-out infinite reverse;
-        }
+        .sp-orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.18; }
+        .sp-orb-1 { width: 280px; height: 280px; background: var(--violet); top: -90px; right: 8%; animation: float 7s ease-in-out infinite; }
+        .sp-orb-2 { width: 200px; height: 200px; background: var(--jade); bottom: -50px; left: 18%; animation: float 9s ease-in-out infinite reverse; }
         .sp-hero-content { position: relative; z-index: 2; text-align: center; }
-        .sp-hero-title {
-          font-family: var(--font-display); font-size: 2.4rem;
-          font-weight: 800; color: var(--white);
-          margin-bottom: 10px; letter-spacing: -0.03em;
-        }
+        .sp-hero-title { font-family: var(--font-display); font-size: 2.4rem; font-weight: 800; color: var(--white); margin-bottom: 10px; letter-spacing: -0.03em; }
         .sp-hero-desc { color: rgba(255,255,255,0.52); font-size: 1rem; }
-
-        .filter-pill {
-          padding: 5px 13px; border-radius: var(--r-full);
-          background: var(--bg-overlay); color: var(--text-body);
-          font-family: var(--font-display); font-size: 0.78rem;
-          font-weight: 600; cursor: pointer;
-          transition: all var(--dur-fast) var(--ease-out);
-          border: 1px solid transparent;
-        }
+        .filter-pill { padding: 5px 13px; border-radius: var(--r-full); background: var(--bg-overlay); color: var(--text-body); font-family: var(--font-display); font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all var(--dur-fast) var(--ease-out); border: 1px solid transparent; }
         .filter-pill:hover { background: var(--cobalt-xpale); color: var(--cobalt); }
-        .filter-pill.active {
-          background: var(--grad-cobalt); color: var(--white);
-          box-shadow: var(--shadow-cobalt);
-        }
-        [data-theme="dark"] .filter-pill:hover {
-          background: rgba(27,79,255,0.12); color: var(--cobalt-light);
-        }
-
-        @media (max-width: 768px) {
-          .sp-hero-title { font-size: 1.7rem; }
-        }
+        .filter-pill.active { background: var(--grad-cobalt); color: var(--white); box-shadow: var(--shadow-cobalt); }
+        [data-theme="dark"] .filter-pill:hover { background: rgba(27,79,255,0.12); color: var(--cobalt-light); }
+        @media (max-width: 768px) { .sp-hero-title { font-size: 1.7rem; } }
       `}</style>
     </>
   );

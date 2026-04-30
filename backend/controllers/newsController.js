@@ -1,22 +1,16 @@
 const News = require('../models/News');
-const { getPagination } = require('../utils/helpers');
+const { getPagination, deleteFromCloudinary, getYouTubeThumbnail } = require('../utils/helpers');
 
-// @desc    Get all published news
-// @route   GET /api/news
 exports.getNews = async (req, res) => {
   try {
     const { page, limit, category, search, sort, featured, breaking } = req.query;
     const { pageNum, limitNum, skip } = getPagination(page, limit);
 
     let query = { status: 'published' };
-
     if (category) query.category = category;
     if (featured === 'true') query.isFeatured = true;
     if (breaking === 'true') query.isBreaking = true;
-
-    if (search) {
-      query.$text = { $search: search };
-    }
+    if (search) query.$text = { $search: search };
 
     let sortOption = { createdAt: -1 };
     if (sort === 'views') sortOption = { views: -1 };
@@ -31,13 +25,10 @@ exports.getNews = async (req, res) => {
       .limit(limitNum);
 
     res.json({
-      success: true,
-      data: news,
+      success: true, data: news,
       pagination: {
-        page: pageNum,
-        limit: limitNum,
-        total,
-        pages: Math.ceil(total / limitNum)
+        page: pageNum, limit: limitNum,
+        total, pages: Math.ceil(total / limitNum)
       }
     });
   } catch (error) {
@@ -45,8 +36,6 @@ exports.getNews = async (req, res) => {
   }
 };
 
-// @desc    Get single news
-// @route   GET /api/news/:slug
 exports.getNewsBySlug = async (req, res) => {
   try {
     const news = await News.findOne({ slug: req.params.slug, status: 'published' })
@@ -66,7 +55,6 @@ exports.getNewsBySlug = async (req, res) => {
       return res.status(404).json({ success: false, message: 'News not found' });
     }
 
-    // Increment views
     news.views += 1;
     await news.save();
 
@@ -76,8 +64,6 @@ exports.getNewsBySlug = async (req, res) => {
   }
 };
 
-// @desc    Create news
-// @route   POST /api/news
 exports.createNews = async (req, res) => {
   try {
     const newsData = {
@@ -90,11 +76,11 @@ exports.createNews = async (req, res) => {
       newsData.tags = req.body.tags.split(',').map(t => t.trim());
     }
 
+    // Cloudinary URL is in req.file.path
     if (req.file) {
-      newsData.featuredImage = `/uploads/news/${req.file.filename}`;
+      newsData.featuredImage = req.file.path;
     }
 
-    // Parse multilingual fields
     if (req.body.titleEn) {
       newsData.title = {
         en: req.body.titleEn,
@@ -126,8 +112,6 @@ exports.createNews = async (req, res) => {
   }
 };
 
-// @desc    Update news
-// @route   PUT /api/news/:id
 exports.updateNews = async (req, res) => {
   try {
     let news = await News.findById(req.params.id);
@@ -135,20 +119,22 @@ exports.updateNews = async (req, res) => {
       return res.status(404).json({ success: false, message: 'News not found' });
     }
 
-    // Check ownership
     if (news.author.toString() !== req.user.id && req.user.role !== 'admin') {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
     if (req.file) {
-      req.body.featuredImage = `/uploads/news/${req.file.filename}`;
+      // Delete old image from Cloudinary
+      if (news.featuredImage) {
+        await deleteFromCloudinary(news.featuredImage);
+      }
+      req.body.featuredImage = req.file.path;
     }
 
     if (req.body.tags && typeof req.body.tags === 'string') {
       req.body.tags = req.body.tags.split(',').map(t => t.trim());
     }
 
-    // Parse multilingual fields
     if (req.body.titleEn) {
       req.body.title = {
         en: req.body.titleEn,
@@ -172,8 +158,7 @@ exports.updateNews = async (req, res) => {
     }
 
     news = await News.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true
+      new: true, runValidators: true
     }).populate('author', 'name avatar');
 
     res.json({ success: true, data: news });
@@ -182,8 +167,6 @@ exports.updateNews = async (req, res) => {
   }
 };
 
-// @desc    Delete news
-// @route   DELETE /api/news/:id
 exports.deleteNews = async (req, res) => {
   try {
     const news = await News.findById(req.params.id);
@@ -195,6 +178,11 @@ exports.deleteNews = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
+    // Delete image from Cloudinary
+    if (news.featuredImage) {
+      await deleteFromCloudinary(news.featuredImage);
+    }
+
     await News.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: 'News deleted' });
   } catch (error) {
@@ -202,8 +190,6 @@ exports.deleteNews = async (req, res) => {
   }
 };
 
-// @desc    Like/Unlike news
-// @route   POST /api/news/:id/like
 exports.likeNews = async (req, res) => {
   try {
     const { email } = req.body;
@@ -217,7 +203,6 @@ exports.likeNews = async (req, res) => {
     }
 
     const existingLike = news.likes.find(l => l.email === email);
-
     if (existingLike) {
       news.likes = news.likes.filter(l => l.email !== email);
       news.likesCount = Math.max(0, news.likesCount - 1);
@@ -227,7 +212,6 @@ exports.likeNews = async (req, res) => {
     }
 
     await news.save();
-
     res.json({
       success: true,
       liked: !existingLike,
@@ -238,8 +222,6 @@ exports.likeNews = async (req, res) => {
   }
 };
 
-// @desc    Share news (increment count)
-// @route   POST /api/news/:id/share
 exports.shareNews = async (req, res) => {
   try {
     const news = await News.findByIdAndUpdate(
@@ -256,8 +238,6 @@ exports.shareNews = async (req, res) => {
   }
 };
 
-// @desc    Get most viewed news
-// @route   GET /api/news/most-viewed
 exports.getMostViewed = async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 10;
@@ -265,22 +245,18 @@ exports.getMostViewed = async (req, res) => {
       .populate('author', 'name avatar')
       .sort({ views: -1 })
       .limit(limit);
-
     res.json({ success: true, data: news });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Get breaking news
-// @route   GET /api/news/breaking
 exports.getBreakingNews = async (req, res) => {
   try {
     const news = await News.find({ status: 'published', isBreaking: true })
       .populate('author', 'name avatar')
       .sort({ createdAt: -1 })
       .limit(5);
-
     res.json({ success: true, data: news });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

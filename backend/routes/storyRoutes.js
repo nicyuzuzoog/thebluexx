@@ -1,13 +1,16 @@
 const express = require('express');
 const router = express.Router();
-const { getStories, getStory, createStory, deleteStory } = require('../controllers/storyController');
+const {
+  getStories, getStory,
+  createStory, deleteStory
+} = require('../controllers/storyController');
 const { protect } = require('../middleware/auth');
 const { adminAuth } = require('../middleware/adminAuth');
-const { upload } = require('../utils/helpers');
+const { uploadStories } = require('../utils/helpers');
 
 router.route('/')
   .get(getStories)
-  .post(protect, upload.single('image'), createStory);
+  .post(protect, uploadStories.single('image'), createStory);
 
 router.route('/:id')
   .get(getStory)

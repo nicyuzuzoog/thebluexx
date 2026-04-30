@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Helmet } from 'react-helmet-async';
-import { IoArrowBack, IoEye, IoHeart, IoTime } from 'react-icons/io5';
-import { getLocalizedText, formatNumber, formatDate } from '../utils/helpers';
+import { IoArrowBack, IoEye, IoHeart } from 'react-icons/io5';
+import {
+  getLocalizedText, formatNumber, formatDate, getImageUrl
+} from '../utils/helpers';
 import api from '../utils/api';
 import ShareMenu from '../components/common/ShareMenu';
 
@@ -65,11 +67,17 @@ const StoryDetail = () => {
 
         <article className="animate-fadeInUp">
           {story.image && (
-            <img src={story.image} alt={title}
+            <img
+              src={getImageUrl(story.image)}
+              alt={title}
               style={{
-                width: '100%', height: '380px', objectFit: 'cover',
-                borderRadius: 'var(--r-lg)', marginBottom: '22px'
-              }} />
+                width: '100%',
+                height: '380px',
+                objectFit: 'cover',
+                borderRadius: 'var(--r-lg)',
+                marginBottom: '22px'
+              }}
+            />
           )}
 
           <span className="tag tag-green" style={{ marginBottom: '12px', display: 'inline-flex' }}>
@@ -78,8 +86,10 @@ const StoryDetail = () => {
 
           <h1 style={{
             fontFamily: 'var(--font-serif)',
-            fontSize: '2rem', fontWeight: 700,
-            lineHeight: 1.28, marginBottom: '14px',
+            fontSize: '2rem',
+            fontWeight: 700,
+            lineHeight: 1.28,
+            marginBottom: '14px',
             letterSpacing: '-0.02em',
             color: 'var(--text-primary)'
           }}>
@@ -89,15 +99,19 @@ const StoryDetail = () => {
           <div className="sd-meta">
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div className="avatar">
-                <div className="avatar-placeholder">
-                  {story.authorName?.charAt(0) || 'A'}
-                </div>
+                {story.author?.avatar ? (
+                  <img
+                    src={getImageUrl(story.author.avatar)}
+                    alt={story.authorName || story.author?.name}
+                  />
+                ) : (
+                  <div className="avatar-placeholder">
+                    {story.authorName?.charAt(0) || 'A'}
+                  </div>
+                )}
               </div>
               <div>
-                <p style={{
-                  fontFamily: 'var(--font-display)', fontWeight: 600,
-                  fontSize: '0.9rem'
-                }}>
+                <p style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '0.9rem' }}>
                   {story.authorName || story.author?.name}
                 </p>
                 <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>

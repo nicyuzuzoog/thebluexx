@@ -1,64 +1,165 @@
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('../config/cloudinary');
 
-// ─── Create upload directories ───
-const dirs = [
-  'uploads',
-  'uploads/news',
-  'uploads/movies',
-  'uploads/ads',
-  'uploads/avatars',
-  'uploads/stories'
-];
+// ─── Cloudinary Storage for each folder ───
+const createCloudinaryStorage = (folder) => {
+  return new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: async (req, file) => {
+      // Determine folder based on route
+      let uploadFolder = 'thebluex/general';
 
-dirs.forEach(dir => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-});
+      if (folder) {
+        uploadFolder = `thebluex/${folder}`;
+      } else if (req.baseUrl.includes('news')) {
+        uploadFolder = 'thebluex/news';
+      } else if (req.baseUrl.includes('movies')) {
+        uploadFolder = 'thebluex/movies';
+      } else if (req.baseUrl.includes('ads')) {
+        uploadFolder = 'thebluex/ads';
+      } else if (req.baseUrl.includes('stories')) {
+        uploadFolder = 'thebluex/stories';
+      } else if (req.baseUrl.includes('auth')) {
+        uploadFolder = 'thebluex/avatars';
+      }
 
-// ─── Storage configuration ───
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    let uploadPath = 'uploads/';
-
-    if (req.baseUrl.includes('news'))    uploadPath = 'uploads/news/';
-    else if (req.baseUrl.includes('movies'))  uploadPath = 'uploads/movies/';
-    else if (req.baseUrl.includes('ads'))     uploadPath = 'uploads/ads/';
-    else if (req.baseUrl.includes('stories')) uploadPath = 'uploads/stories/';
-    else if (req.baseUrl.includes('auth'))    uploadPath = 'uploads/avatars/';
-
-    cb(null, uploadPath);
-  },
-
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
-});
+      return {
+        folder: uploadFolder,
+        allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'],
+        transformation: [
+          {
+            quality: 'auto',
+            fetch_format: 'auto'
+          }
+        ],
+        public_id: `${Date.now()}-${Math.round(Math.random() * 1E9)}`
+      };
+    }
+  });
+};
 
 // ─── File filter ───
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|gif|webp|svg/;
-  const extname = allowedTypes.test(
-    path.extname(file.originalname).toLowerCase()
-  );
-  const mimetype = allowedTypes.test(file.mimetype);
+  const allowedMimeTypes = [
+    'image/jpeg',
+    'image/jpg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    'image/svg+xml'
+  ];
 
-  if (mimetype && extname) {
-    return cb(null, true);
+  if (allowedMimeTypes.includes(file.mimetype)) {
+    cb(null, true);
   } else {
-    cb(new Error('Only image files are allowed!'));
+    cb(new Error('Only image files are allowed! (jpg, png, gif, webp, svg)'), false);
   }
 };
 
-// ─── Multer upload ───
+// ─── Main upload middleware (auto-detects folder from route) ───
 const upload = multer({
-  storage,
+  storage: createCloudinaryStorage(null),
   fileFilter,
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB
 });
+
+// ─── Specific upload middlewares for each type ───
+const uploadNews = multer({
+  storage: createCloudinaryStorage('news'),
+  fileFilter,
+  limits: { fileSize: 10 * 1024 * 1024 }
+});
+
+const uploadMovies = multer({
+  storage: createCloudinaryStorage('movies'),
+  fileFilter,
+  limits: { fileSize: 10 * 1024 * 1024 }
+});
+
+const uploadAds = multer({
+  storage: createCloudinaryStorage('ads'),
+  fileFilter,
+  limits: { fileSize: 10 * 1024 * 1024 }
+});
+
+const uploadAvatars = multer({
+  storage: createCloudinaryStorage('avatars'),
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 } // 5MB for avatars
+});
+
+const uploadStories = multer({
+  storage: createCloudinaryStorage('stories'),
+  fileFilter,
+  limits: { fileSize: 10 * 1024 * 1024 }
+});
+
+// ─── Delete image from Cloudinary ───
+const deleteFromCloudinary = async (imageUrl) => {
+  try {
+    if (!imageUrl) return;
+
+    // Only delete Cloudinary images
+    if (!imageUrl.includes('cloudinary.com')) return;
+
+    // Extract public_id from URL
+    // URL format: https://res.cloudinary.com/cloud_name/image/upload/v123/folder/filename.jpg
+    const urlParts = imageUrl.split('/');
+    const uploadIndex = urlParts.indexOf('upload');
+
+    if (uploadIndex === -1) return;
+
+    // Get everything after 'upload/v{version}/'
+    const pathAfterUpload = urlParts.slice(uploadIndex + 2).join('/');
+    // Remove file extension
+    const publicId = pathAfterUpload.replace(/\.[^/.]+$/, '');
+
+    await cloudinary.uploader.destroy(publicId);
+    console.log(`✅ Deleted from Cloudinary: ${publicId}`);
+  } catch (error) {
+    console.error('❌ Cloudinary delete error:', error.message);
+  }
+};
+
+// ─── Upload image from URL to Cloudinary ───
+const uploadFromUrl = async (url, folder = 'thebluex/general') => {
+  try {
+    const result = await cloudinary.uploader.upload(url, {
+      folder,
+      transformation: [{ quality: 'auto', fetch_format: 'auto' }]
+    });
+    return result.secure_url;
+  } catch (error) {
+    console.error('❌ Cloudinary upload from URL error:', error.message);
+    return url; // Return original URL if upload fails
+  }
+};
+
+// ─── Get optimized image URL from Cloudinary ───
+const getOptimizedUrl = (cloudinaryUrl, options = {}) => {
+  if (!cloudinaryUrl || !cloudinaryUrl.includes('cloudinary.com')) {
+    return cloudinaryUrl;
+  }
+
+  const {
+    width,
+    height,
+    quality = 'auto',
+    format = 'auto',
+    crop = 'fill'
+  } = options;
+
+  // Build transformation string
+  let transforms = `q_${quality},f_${format}`;
+  if (width) transforms += `,w_${width}`;
+  if (height) transforms += `,h_${height}`;
+  if (width || height) transforms += `,c_${crop}`;
+
+  // Insert transformation into URL
+  return cloudinaryUrl.replace('/upload/', `/upload/${transforms}/`);
+};
 
 // ─── Extract YouTube Video ID ───
 const extractYouTubeId = (url) => {
@@ -114,25 +215,6 @@ const getLocalizedText = (textObj, lang = 'en') => {
   return textObj[lang] || textObj.en || textObj.fr || textObj.rw || '';
 };
 
-// ─── Slugify text ───
-const slugify = (text) => {
-  return text
-    .toString()
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/[^\w-]+/g, '')
-    .replace(/--+/g, '-')
-    .replace(/^-+/, '')
-    .replace(/-+$/, '');
-};
-
-// ─── Validate email ───
-const isValidEmail = (email) => {
-  const re = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
-  return re.test(email);
-};
-
 // ─── Time ago ───
 const timeAgo = (date) => {
   if (!date) return '';
@@ -153,40 +235,23 @@ const timeAgo = (date) => {
   });
 };
 
-// ─── Generate random string ───
-const generateRandomString = (length = 32) => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
+// ─── Validate email ───
+const isValidEmail = (email) => {
+  const re = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
+  return re.test(email);
 };
 
-// ─── Sanitize string ───
-const sanitizeString = (str) => {
-  if (!str) return '';
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-};
-
-// ─── Check if string is URL ───
-const isUrl = (str) => {
-  try {
-    new URL(str);
-    return true;
-  } catch {
-    return false;
-  }
-};
-
-// ─── Get file extension ───
-const getFileExtension = (filename) => {
-  return path.extname(filename).toLowerCase().replace('.', '');
+// ─── Slugify ───
+const slugifyText = (text) => {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^\w-]+/g, '')
+    .replace(/--+/g, '-')
+    .replace(/^-+/, '')
+    .replace(/-+$/, '');
 };
 
 // ─── Calculate read time ───
@@ -199,19 +264,29 @@ const calculateReadTime = (text) => {
 };
 
 module.exports = {
+  // Upload middlewares
   upload,
+  uploadNews,
+  uploadMovies,
+  uploadAds,
+  uploadAvatars,
+  uploadStories,
+
+  // Cloudinary helpers
+  deleteFromCloudinary,
+  uploadFromUrl,
+  getOptimizedUrl,
+  cloudinary,
+
+  // General helpers
   extractYouTubeId,
   getYouTubeThumbnail,
   getPagination,
   formatNumber,
   truncateText,
   getLocalizedText,
-  slugify,
-  isValidEmail,
   timeAgo,
-  generateRandomString,
-  sanitizeString,
-  isUrl,
-  getFileExtension,
+  isValidEmail,
+  slugifyText,
   calculateReadTime
 };

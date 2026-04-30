@@ -2,7 +2,10 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { IoEye, IoHeart, IoTime, IoArrowForward } from 'react-icons/io5';
-import { getLocalizedText, formatNumber, timeAgo, truncateText } from '../../utils/helpers';
+import {
+  getLocalizedText, formatNumber, timeAgo,
+  truncateText, getImageUrl
+} from '../../utils/helpers';
 import api from '../../utils/api';
 import ShareMenu from '../common/ShareMenu';
 
@@ -59,10 +62,14 @@ const NewsSection = () => {
           <h2 className="section-title">{t('home.latestNews')}</h2>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <div className="tabs" style={{ marginBottom: 0 }}>
-              <button className={`tab-btn ${activeTab === 'latest' ? 'active' : ''}`}
-                onClick={() => setActiveTab('latest')}>{t('news.latest')}</button>
-              <button className={`tab-btn ${activeTab === 'popular' ? 'active' : ''}`}
-                onClick={() => setActiveTab('popular')}>{t('news.popular')}</button>
+              <button
+                className={`tab-btn ${activeTab === 'latest' ? 'active' : ''}`}
+                onClick={() => setActiveTab('latest')}>{t('news.latest')}
+              </button>
+              <button
+                className={`tab-btn ${activeTab === 'popular' ? 'active' : ''}`}
+                onClick={() => setActiveTab('popular')}>{t('news.popular')}
+              </button>
             </div>
             <Link to="/news" className="btn btn-secondary btn-sm">
               {t('home.viewAll')} <IoArrowForward />
@@ -72,10 +79,17 @@ const NewsSection = () => {
 
         {activeTab === 'latest' && featured && (
           <div className="news-grid-featured" style={{ marginBottom: '28px' }}>
-            {/* Featured */}
-            <Link to={`/news/${featured.slug}`} className="card featured-news-card animate-fadeInLeft">
+            {/* Featured Card */}
+            <Link
+              to={`/news/${featured.slug}`}
+              className="card featured-news-card animate-fadeInLeft"
+            >
               <div className="card-image" style={{ aspectRatio: '16/9' }}>
-                <img src={featured.featuredImage} alt={getLocalizedText(featured.title, i18n.language)} />
+                <img
+                  src={getImageUrl(featured.featuredImage)}
+                  alt={getLocalizedText(featured.title, i18n.language)}
+                  loading="lazy"
+                />
                 <div className="card-image-overlay">
                   <span style={{ color: 'var(--white)', fontWeight: 600, fontSize: '0.88rem' }}>
                     {t('home.readMore')} →
@@ -93,34 +107,48 @@ const NewsSection = () => {
                   {getLocalizedText(featured.title, i18n.language)}
                 </h3>
                 <p className="card-excerpt">
-                  {truncateText(getLocalizedText(featured.summary || featured.content, i18n.language), 200)}
+                  {truncateText(
+                    getLocalizedText(featured.summary || featured.content, i18n.language),
+                    200
+                  )}
                 </p>
                 <div className="card-footer">
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div className="avatar avatar-sm">
-                      <div className="avatar-placeholder" style={{ fontSize: '0.65rem' }}>
-                        {featured.author?.name?.charAt(0) || 'A'}
-                      </div>
+                      {featured.author?.avatar ? (
+                        <img
+                          src={getImageUrl(featured.author.avatar)}
+                          alt={featured.author.name}
+                        />
+                      ) : (
+                        <div className="avatar-placeholder" style={{ fontSize: '0.65rem' }}>
+                          {featured.author?.name?.charAt(0) || 'A'}
+                        </div>
+                      )}
                     </div>
                     <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
                       {featured.author?.name}
                     </span>
                   </div>
-                  <ShareMenu url={`/news/${featured.slug}`}
-                    title={getLocalizedText(featured.title, i18n.language)} />
+                  <ShareMenu
+                    url={`/news/${featured.slug}`}
+                    title={getLocalizedText(featured.title, i18n.language)}
+                  />
                 </div>
               </div>
             </Link>
 
-            {/* Most Viewed */}
+            {/* Most Viewed Sidebar */}
             <div className="mv-sidebar animate-fadeInRight">
-              <h3 className="mv-sidebar-title">
-                🔥 {t('home.mostViewed')}
-              </h3>
+              <h3 className="mv-sidebar-title">🔥 {t('home.mostViewed')}</h3>
               <div className="mv-list">
                 {mostViewed.map((item, i) => (
-                  <Link to={`/news/${item.slug}`} key={item._id} className="mv-item"
-                    style={{ animationDelay: `${i * 0.08}s` }}>
+                  <Link
+                    to={`/news/${item.slug}`}
+                    key={item._id}
+                    className="mv-item"
+                    style={{ animationDelay: `${i * 0.08}s` }}
+                  >
                     <span className="mv-number">{String(i + 1).padStart(2, '0')}</span>
                     <div style={{ flex: 1 }}>
                       <h4 className="mv-item-title">
@@ -138,15 +166,21 @@ const NewsSection = () => {
           </div>
         )}
 
-        {/* Grid */}
+        {/* News Grid */}
         <div className="news-grid">
           {(activeTab === 'latest' ? rest : mostViewed).map((item, i) => (
-            <Link to={`/news/${item.slug}`} key={item._id}
+            <Link
+              to={`/news/${item.slug}`}
+              key={item._id}
               className="card animate-fadeInUp"
-              style={{ animationDelay: `${i * 0.08}s` }}>
+              style={{ animationDelay: `${i * 0.08}s` }}
+            >
               <div className="card-image">
-                <img src={item.featuredImage}
-                  alt={getLocalizedText(item.title, i18n.language)} />
+                <img
+                  src={getImageUrl(item.featuredImage)}
+                  alt={getLocalizedText(item.title, i18n.language)}
+                  loading="lazy"
+                />
                 <span className="card-badge card-badge-blue">{item.category}</span>
                 <div className="card-image-overlay">
                   <span style={{ color: 'var(--white)', fontWeight: 500, fontSize: '0.82rem' }}>
@@ -163,12 +197,26 @@ const NewsSection = () => {
                   {getLocalizedText(item.title, i18n.language)}
                 </h3>
                 <p className="card-excerpt">
-                  {truncateText(getLocalizedText(item.summary || item.content, i18n.language), 120)}
+                  {truncateText(
+                    getLocalizedText(item.summary || item.content, i18n.language),
+                    120
+                  )}
                 </p>
                 <div className="card-footer">
-                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                    {item.author?.name}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                    <div className="avatar avatar-sm">
+                      {item.author?.avatar ? (
+                        <img src={getImageUrl(item.author.avatar)} alt={item.author.name} />
+                      ) : (
+                        <div className="avatar-placeholder" style={{ fontSize: '0.65rem' }}>
+                          {item.author?.name?.charAt(0) || 'A'}
+                        </div>
+                      )}
+                    </div>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                      {item.author?.name}
+                    </span>
+                  </div>
                   <span className="tag tag-outline" style={{ fontSize: '0.68rem' }}>
                     <IoHeart /> {formatNumber(item.likesCount)}
                   </span>
@@ -191,7 +239,6 @@ const NewsSection = () => {
           position: sticky;
           top: 120px;
         }
-
         .mv-sidebar-title {
           font-family: var(--font-display);
           font-size: 0.95rem;
@@ -202,13 +249,11 @@ const NewsSection = () => {
           gap: 7px;
           letter-spacing: -0.01em;
         }
-
         .mv-list {
           display: flex;
           flex-direction: column;
           gap: 10px;
         }
-
         .mv-item {
           display: flex;
           align-items: flex-start;
@@ -219,7 +264,6 @@ const NewsSection = () => {
           animation: fadeInRight 0.45s var(--ease-out) both;
         }
         .mv-item:hover { background: var(--bg-overlay); }
-
         .mv-number {
           font-size: 1.35rem;
           font-weight: 800;
@@ -232,7 +276,6 @@ const NewsSection = () => {
           min-width: 28px;
           letter-spacing: -0.03em;
         }
-
         .mv-item-title {
           font-family: var(--font-display);
           font-size: 0.84rem;
@@ -247,7 +290,6 @@ const NewsSection = () => {
           letter-spacing: -0.01em;
         }
         .mv-item:hover .mv-item-title { color: var(--cobalt); }
-
         .mv-item-meta {
           display: flex;
           gap: 9px;
@@ -259,7 +301,6 @@ const NewsSection = () => {
           align-items: center;
           gap: 3px;
         }
-
         @media (max-width: 768px) {
           .mv-sidebar { position: relative; top: 0; }
         }

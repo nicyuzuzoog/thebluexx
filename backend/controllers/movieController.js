@@ -1,26 +1,18 @@
 const Movie = require('../models/Movie');
-const { getPagination, extractYouTubeId } = require('../utils/helpers');
+const {
+  getPagination, extractYouTubeId,
+  getYouTubeThumbnail, deleteFromCloudinary
+} = require('../utils/helpers');
 
-// @desc    Get all movies
-// @route   GET /api/movies
 exports.getMovies = async (req, res) => {
   try {
     const { page, limit, genre, search, sort, featured } = req.query;
     const { pageNum, limitNum, skip } = getPagination(page, limit);
 
     let query = { status: 'published' };
-
-    // Genre filter — uses regular index (genre is array, use $in)
-    if (genre) {
-      query.genre = { $in: [genre] };
-    }
-
+    if (genre) query.genre = { $in: [genre] };
     if (featured === 'true') query.isFeatured = true;
-
-    // Text search — uses text index (only string fields)
-    if (search) {
-      query.$text = { $search: search };
-    }
+    if (search) query.$text = { $search: search };
 
     let sortOption = { createdAt: -1 };
     if (sort === 'views') sortOption = { views: -1 };
@@ -36,26 +28,23 @@ exports.getMovies = async (req, res) => {
       .lean();
 
     res.json({
-      success: true,
-      data: movies,
+      success: true, data: movies,
       pagination: {
-        page: pageNum,
-        limit: limitNum,
-        total,
-        pages: Math.ceil(total / limitNum)
+        page: pageNum, limit: limitNum,
+        total, pages: Math.ceil(total / limitNum)
       }
     });
   } catch (error) {
-    console.error('getMovies error:', error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Get single movie
-// @route   GET /api/movies/:slug
 exports.getMovieBySlug = async (req, res) => {
   try {
-    const movie = await Movie.findOne({ slug: req.params.slug, status: 'published' })
+    const movie = await Movie.findOne({
+      slug: req.params.slug,
+      status: 'published'
+    })
       .populate('addedBy', 'name avatar')
       .populate({
         path: 'comments',
@@ -81,8 +70,6 @@ exports.getMovieBySlug = async (req, res) => {
   }
 };
 
-// @desc    Create movie
-// @route   POST /api/movies
 exports.createMovie = async (req, res) => {
   try {
     const movieData = {
@@ -91,7 +78,6 @@ exports.createMovie = async (req, res) => {
       status: req.user.role === 'admin' ? 'published' : 'pending'
     };
 
-    // Parse multilingual fields
     if (req.body.titleEn) {
       movieData.title = {
         en: req.body.titleEn,
@@ -107,28 +93,24 @@ exports.createMovie = async (req, res) => {
       };
     }
 
-    // Parse genre
     if (req.body.genre && typeof req.body.genre === 'string') {
-      movieData.genre = req.body.genre.split(',').map(g => g.trim());
+      movieData.genre = req.body.genre.split(',').map(g => g.trim()).filter(Boolean);
     }
-
-    // Parse cast
     if (req.body.cast && typeof req.body.cast === 'string') {
-      movieData.cast = req.body.cast.split(',').map(c => c.trim());
+      movieData.cast = req.body.cast.split(',').map(c => c.trim()).filter(Boolean);
     }
 
-    
-    if (req.body.trailerUrl && !req.file) {
-  const ytId = extractYouTubeId(req.body.trailerUrl);
-  if (ytId) {
-    // Use hqdefault instead of maxresdefault (always available)
-    movieData.poster = `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
-    movieData.backdrop = `https://img.youtube.com/vi/${ytId}/sddefault.jpg`;
-  }
-}
-
+    // If poster uploaded to Cloudinary
     if (req.file) {
-      movieData.poster = `/uploads/movies/${req.file.filename}`;
+      movieData.poster = req.file.path;
+      movieData.backdrop = req.file.path;
+    } else if (req.body.trailerUrl) {
+      // Use YouTube thumbnail as poster
+      const ytId = extractYouTubeId(req.body.trailerUrl);
+      if (ytId) {
+        movieData.poster = `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
+        movieData.backdrop = `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
+      }
     }
 
     const movie = await Movie.create(movieData);
@@ -140,8 +122,6 @@ exports.createMovie = async (req, res) => {
   }
 };
 
-// @desc    Update movie
-// @route   PUT /api/movies/:id
 exports.updateMovie = async (req, res) => {
   try {
     let movie = await Movie.findById(req.params.id);
@@ -154,7 +134,11 @@ exports.updateMovie = async (req, res) => {
     }
 
     if (req.file) {
-      req.body.poster = `/uploads/movies/${req.file.filename}`;
+      // Delete old poster from Cloudinary
+      if (movie.poster && movie.poster.includes('cloudinary.com')) {
+        await deleteFromCloudinary(movie.poster);
+      }
+      req.body.poster = req.file.path;
     }
 
     if (req.body.titleEn) {
@@ -173,15 +157,14 @@ exports.updateMovie = async (req, res) => {
     }
 
     if (req.body.genre && typeof req.body.genre === 'string') {
-      req.body.genre = req.body.genre.split(',').map(g => g.trim());
+      req.body.genre = req.body.genre.split(',').map(g => g.trim()).filter(Boolean);
     }
     if (req.body.cast && typeof req.body.cast === 'string') {
-      req.body.cast = req.body.cast.split(',').map(c => c.trim());
+      req.body.cast = req.body.cast.split(',').map(c => c.trim()).filter(Boolean);
     }
 
     movie = await Movie.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true
+      new: true, runValidators: true
     }).populate('addedBy', 'name avatar');
 
     res.json({ success: true, data: movie });
@@ -190,8 +173,6 @@ exports.updateMovie = async (req, res) => {
   }
 };
 
-// @desc    Delete movie
-// @route   DELETE /api/movies/:id
 exports.deleteMovie = async (req, res) => {
   try {
     const movie = await Movie.findById(req.params.id);
@@ -203,6 +184,11 @@ exports.deleteMovie = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
+    // Delete poster from Cloudinary
+    if (movie.poster && movie.poster.includes('cloudinary.com')) {
+      await deleteFromCloudinary(movie.poster);
+    }
+
     await Movie.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: 'Movie deleted' });
   } catch (error) {
@@ -210,20 +196,16 @@ exports.deleteMovie = async (req, res) => {
   }
 };
 
-// @desc    Like/Unlike movie
-// @route   POST /api/movies/:id/like
 exports.likeMovie = async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) {
       return res.status(400).json({ success: false, message: 'Email is required' });
     }
-
     const movie = await Movie.findById(req.params.id);
     if (!movie) {
       return res.status(404).json({ success: false, message: 'Movie not found' });
     }
-
     const existingLike = movie.likes.find(l => l.email === email);
     if (existingLike) {
       movie.likes = movie.likes.filter(l => l.email !== email);
@@ -232,7 +214,6 @@ exports.likeMovie = async (req, res) => {
       movie.likes.push({ email });
       movie.likesCount += 1;
     }
-
     await movie.save();
     res.json({ success: true, liked: !existingLike, likesCount: movie.likesCount });
   } catch (error) {
@@ -240,8 +221,6 @@ exports.likeMovie = async (req, res) => {
   }
 };
 
-// @desc    Track download
-// @route   POST /api/movies/:id/download
 exports.trackDownload = async (req, res) => {
   try {
     const movie = await Movie.findByIdAndUpdate(
@@ -252,14 +231,16 @@ exports.trackDownload = async (req, res) => {
     if (!movie) {
       return res.status(404).json({ success: false, message: 'Movie not found' });
     }
-    res.json({ success: true, downloadUrl: movie.downloadUrl, downloads: movie.downloads });
+    res.json({
+      success: true,
+      downloadUrl: movie.downloadUrl,
+      downloads: movie.downloads
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Share movie
-// @route   POST /api/movies/:id/share
 exports.shareMovie = async (req, res) => {
   try {
     const movie = await Movie.findByIdAndUpdate(
