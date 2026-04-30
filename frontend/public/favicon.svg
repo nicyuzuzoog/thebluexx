@@ -1,49 +1,63 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#000000"/>
+
+  <!-- Blue moon -->
+  <circle cx="256" cy="220" r="190" fill="#62d8f6"/>
+
+  <!-- Glow in center -->
   <defs>
-    <!-- Brand gradient -->
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1B4FFF"/>
-      <stop offset="100%" stop-color="#00C26F"/>
-    </linearGradient>
-    <!-- Shine effect -->
-    <linearGradient id="shine" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="rgba(255,255,255,0.28)"/>
-      <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
-    </linearGradient>
-    <!-- Shadow filter -->
-    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="rgba(27,79,255,0.4)"/>
-    </filter>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="35%" stop-color="#ffffff" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
   </defs>
 
-  <!-- Rounded background with gradient -->
-  <rect
-    width="100" height="100"
-    rx="24" ry="24"
-    fill="url(#bg)"
-    filter="url(#shadow)"
-  />
+  <circle cx="256" cy="220" r="42" fill="url(#glow)"/>
 
-  <!-- Shine overlay on top half -->
-  <rect
-    width="100" height="54"
-    rx="24" ry="24"
-    fill="url(#shine)"
-  />
+  <!-- People silhouettes -->
+  <g fill="#000000">
+    <!-- ground -->
+    <rect x="70" y="320" width="372" height="18"/>
 
-  <!-- Letter B centered -->
+    <!-- person 1 -->
+    <circle cx="110" cy="305" r="8"/>
+    <rect x="104" y="313" width="12" height="22"/>
+
+    <!-- person 2 -->
+    <circle cx="150" cy="300" r="9"/>
+    <rect x="143" y="309" width="14" height="26"/>
+
+    <!-- person 3 -->
+    <circle cx="195" cy="298" r="10"/>
+    <rect x="187" y="308" width="16" height="28"/>
+
+    <!-- center main person -->
+    <circle cx="256" cy="290" r="11"/>
+    <rect x="247" y="301" width="18" height="35"/>
+
+    <!-- person 5 -->
+    <circle cx="315" cy="298" r="10"/>
+    <rect x="307" y="308" width="16" height="28"/>
+
+    <!-- person 6 -->
+    <circle cx="360" cy="300" r="9"/>
+    <rect x="353" y="309" width="14" height="26"/>
+
+    <!-- person 7 -->
+    <circle cx="400" cy="305" r="8"/>
+    <rect x="394" y="313" width="12" height="22"/>
+  </g>
+
+  <!-- Text -->
   <text
-    x="52"
-    y="70"
-    font-family="Arial Black, Arial, sans-serif"
-    font-size="60"
-    font-weight="900"
-    fill="white"
+    x="256"
+    y="430"
     text-anchor="middle"
-    opacity="1"
-  >B</text>
-
-  <!-- Small dot accent bottom right -->
-  <circle cx="76" cy="76" r="8" fill="#00C26F" opacity="0.9"/>
-  <circle cx="76" cy="76" r="4" fill="white" opacity="0.9"/>
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="64"
+    font-weight="700"
+    fill="#ffffff">
+    THE BLUEX
+  </text>
 </svg>
